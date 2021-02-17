@@ -82,6 +82,11 @@ int main()
     }
 }
 
+/**
+ * Reads a specific number of serial bytes
+ * @param   len:    number of bytes to read
+ * @retval  returns a string of the read bytes
+ */
 string readSerial(int len){
     char ch[len] = {0};
     DWORD dwByteRead = 0;
@@ -120,6 +125,9 @@ void sendKey(uint8_t key, int state){
     SendInput(1, &ip, sizeof(INPUT));
 }
 
+/**
+ * Exits the program after closing the serial port
+ */ 
 void exitSerial(){
     CloseHandle(hComm);
     exit(0);
