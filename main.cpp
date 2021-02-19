@@ -1,3 +1,4 @@
+#include "winStats.h"
 #include <iostream>
 #include <windows.h>
 #include <stdio.h>
@@ -17,8 +18,8 @@ int main()
     printf("Hello World\n");
 
     //Open Serial Port
-    hComm = CreateFile(
-        "\\\\.\\COM5",
+    hComm = CreateFileA(
+        "\\\\.\\COM6",
         GENERIC_READ | GENERIC_WRITE,
         0,
         NULL,
@@ -61,6 +62,8 @@ int main()
         exitSerial();
     }
 
+    pdhinit();
+
     while(1){
         string rtn = readSerial(5);
         if(rtn!="NULL"){
@@ -79,6 +82,8 @@ int main()
                 }
             }
         }
+        double percent = getCpuUsage();
+        printf("%d\n",(int)percent);
     }
 }
 
