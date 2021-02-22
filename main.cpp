@@ -3,19 +3,33 @@
 #include <windows.h>
 #include <stdio.h>
 #include <string.h>
+#include <thread>
 
 using namespace std;
 
 void exitSerial();
 string readSerial(int len);
 void sendKey(uint8_t key, int state);
+void getStats();
 
 //Serial Port Handle
 HANDLE hComm;
 
+LONGLONG totalSysMem;
+
+int cpuPer;
+int memPer;
+int dskPer;
+
 int main()
 {
     printf("Hello World\n");
+
+    MEMORYSTATUSEX statex;
+    statex.dwLength = sizeof(statex);
+    GlobalMemoryStatusEx(&statex);
+    totalSysMem = statex.ullTotalPhys/1024/1024;
+    printf("total Sys Mem: %lld MB",totalSysMem);
 
     //Open Serial Port
     hComm = CreateFileA(
@@ -63,6 +77,7 @@ int main()
     }
 
     pdhinit();
+    std::thread threadObj(getStats);
 
     while(1){
         string rtn = readSerial(5);
@@ -82,8 +97,25 @@ int main()
                 }
             }
         }
-        double percent = getCpuUsage();
-        printf("%d\n",(int)percent);
+        printf("%d\t%d\t%d\n",cpuPer,memPer,dskPer);
+    }
+}
+
+/**
+ * Retrives System Stats every 500 ms and stores their values into public variables.
+ */
+void getStats(){
+    while(1){
+        double cpuVal;
+        double dskVal;
+        long memVal;
+
+        Sleep(500);
+        getCpuUsage(cpuVal,memVal,dskVal);
+
+        cpuPer = (int)cpuVal;
+        memPer = 100 - (int)((float)memVal/totalSysMem * 100);
+        dskPer = 100 - (int)dskVal;
     }
 }
 

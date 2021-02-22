@@ -2,6 +2,6 @@
 #define WINSTATS_H
 
 void pdhinit();
-double getCpuUsage();
+void getCpuUsage(double &cpuVal, long &memVal, double &dskVal);
 
 #endif

@@ -3,56 +3,69 @@
 #include <pdhmsg.h>
 #include <stdio.h>
 
-static HQUERY cpuQuery;
-static HCOUNTER cpuTotal;
+static HQUERY query;
+
+static HCOUNTER cpuCounter;
+static HCOUNTER memCounter;
+static HCOUNTER dskCounter;
+
 static PDH_STATUS Status;
 
-__int64 Filetime2Int64(const FILETIME &ftime)
-{
-    LARGE_INTEGER li;
-    li.LowPart = ftime.dwLowDateTime;
-    li.HighPart = ftime.dwHighDateTime;
-    return li.QuadPart;
-}
- 
-__int64 CompareFileTime2(const FILETIME &preTime, const FILETIME &nowTime)
-{
-    return Filetime2Int64(nowTime) - Filetime2Int64(preTime);
-}
-
 void pdhinit(){
-    Status = PdhOpenQuery(NULL, NULL, &cpuQuery);
+    Status = PdhOpenQuery(NULL, NULL, &query);
     if(Status != ERROR_SUCCESS){
         wprintf(L"\nPdhOpenQuery failed with status 0x%x.", Status);
     }
     
-    Status = PdhAddCounter(cpuQuery, TEXT("\\Processor(_Total)\\% Processor Time"), NULL, &cpuTotal);
+    Status = PdhAddCounter(query, TEXT("\\Processor(_Total)\\% Processor Time"), NULL, &cpuCounter);
     if(Status != ERROR_SUCCESS){
-        wprintf(L"\nPdhAddCounter failed with status 0x%x.", Status);
+        wprintf(L"\nPdhAddCounter CPU failed with status 0x%x.", Status);
+    }
+
+    Status = PdhAddCounter(query, TEXT("\\PhysicalDisk(1 C:)\\% Idle Time"), NULL, &dskCounter);
+    if(Status != ERROR_SUCCESS){
+        wprintf(L"\nPdhAddCounter Disk failed with status 0x%x.", Status);
+    }
+
+    Status = PdhAddCounter(query, TEXT("\\Memory\\Available MBytes"), NULL, &memCounter);
+    if(Status != ERROR_SUCCESS){
+        wprintf(L"\nPdhAddCounter Memory failed with status 0x%x.", Status);
     }
     
-    Status = PdhCollectQueryData(cpuQuery);
+    Status = PdhCollectQueryData(query);
     if(Status != ERROR_SUCCESS){
         wprintf(L"\nPdhCollectQueryData failed with status 0x%x.", Status);
     }
 }
  
-double getCpuUsage()
+void getCpuUsage(double &cpuVal, long &memVal, double &dskVal)
 {
-    Sleep(500);
     PDH_FMT_COUNTERVALUE counterVal;
 
-    Status = PdhCollectQueryData(cpuQuery);
+    Status = PdhCollectQueryData(query);
     if(Status != ERROR_SUCCESS){
         wprintf(L"\nPdhCollectQueryData failed with status 0x%x.", Status);
     }
 
-    Status = PdhGetFormattedCounterValue(cpuTotal, PDH_FMT_DOUBLE, NULL, &counterVal);
+    Status = PdhGetFormattedCounterValue(cpuCounter, PDH_FMT_DOUBLE, NULL, &counterVal);
     if(Status != ERROR_SUCCESS){
         wprintf(L"\nPdhGetFormatedCounterValue failed with status 0x%x.", Status);
     }
+    cpuVal = counterVal.doubleValue;
+
+    Status = PdhGetFormattedCounterValue(dskCounter, PDH_FMT_DOUBLE, NULL, &counterVal);
+    if(Status != ERROR_SUCCESS){
+        wprintf(L"\nPdhGetFormatedCounterValue failed with status 0x%x.", Status);
+    }
+    dskVal = counterVal.doubleValue;
+
+    Status = PdhGetFormattedCounterValue(memCounter, PDH_FMT_LONG, NULL, &counterVal);
+    if(Status != ERROR_SUCCESS){
+        wprintf(L"\nPdhGetFormatedCounterValue failed with status 0x%x.", Status);
+    }
+    memVal = counterVal.longValue;
 
     // wprintf(L"%.20g",counterVal.doubleValue);
 
-    return counterVal.doubleValue;
+    // return counterVal.doubleValue;
 }
