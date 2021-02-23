@@ -9,6 +9,7 @@ using namespace std;
 
 void exitSerial();
 string readSerial(int len);
+void writeSerial(char *buf, int len);
 void sendKey(uint8_t key, int state);
 void getStats();
 
@@ -97,7 +98,7 @@ int main()
                 }
             }
         }
-        printf("%d\t%d\t%d\n",cpuPer,memPer,dskPer);
+        // printf("SYSSTATS:%d\t%d\t%d\n",cpuPer,memPer,dskPer);
     }
 }
 
@@ -116,6 +117,10 @@ void getStats(){
         cpuPer = (int)cpuVal;
         memPer = 100 - (int)((float)memVal/totalSysMem * 100);
         dskPer = 100 - (int)dskVal;
+
+        char buf[50];
+        int len = sprintf(buf,"SYSSTATS:%d\t%d\t%d\n",cpuPer,memPer,dskPer);
+        writeSerial(buf,len);
     }
 }
 
@@ -138,6 +143,17 @@ string readSerial(int len){
     else{
         string str = "NULL";
         return str;
+    }
+}
+
+/**
+ * Write to serial
+ */
+void writeSerial(char *buf, int len){
+    DWORD dwByteRead = 0;
+    if(!WriteFile(hComm, buf, len, &dwByteRead, NULL)){
+        printf("Read Failed\n");
+        exitSerial();
     }
 }
 
