@@ -12,6 +12,7 @@ string readSerial(int len);
 void writeSerial(char *buf, int len);
 void sendKey(uint8_t key, int state);
 void getStats();
+void printError(string errorStr);
 
 //Serial Port Handle
 HANDLE hComm;
@@ -22,19 +23,31 @@ int cpuPer;
 int memPer;
 int dskPer;
 
-int main()
+int main(int argc, char **argv)
 {
-    printf("Hello World\n");
+    printf("Serial Keyboard Wedge by Youtube.com/LiveSparks\n\n");
+
+    string comPort = "COM1";
+
+    if(argc == 1){
+        printf("No arguments passed.");
+    }
+    else{
+        string temp = argv[1];
+        comPort = "\\\\.\\"+temp;
+    }
+
+    cout << "Using Port: " << comPort << "\n";
 
     MEMORYSTATUSEX statex;
     statex.dwLength = sizeof(statex);
     GlobalMemoryStatusEx(&statex);
     totalSysMem = statex.ullTotalPhys/1024/1024;
-    printf("total Sys Mem: %lld MB",totalSysMem);
+    printf("Total Sys Mem: %lld MB\n",totalSysMem);
 
     //Open Serial Port
     hComm = CreateFileA(
-        "\\\\.\\COM6",
+        comPort.c_str(),
         GENERIC_READ | GENERIC_WRITE,
         0,
         NULL,
@@ -43,8 +56,7 @@ int main()
         NULL);
 
     if (hComm == INVALID_HANDLE_VALUE){
-        printf("\nPort can't be opened");
-        system("pause");
+        printError("Port can't be opened");
         return 0;
     }
 
@@ -52,7 +64,7 @@ int main()
     DCB serialParams = {0};
     serialParams.DCBlength = sizeof(serialParams);
     if(GetCommState(hComm, &serialParams) == FALSE){
-        printf("\nFailed to get COM State");
+        printError("Failed to get COM State");
         exitSerial();
     }
     serialParams.BaudRate = CBR_115200;
@@ -60,7 +72,7 @@ int main()
     serialParams.StopBits = ONESTOPBIT;
     serialParams.Parity = NOPARITY;
     if(SetCommState(hComm, &serialParams) == FALSE){
-        printf("\nFailed to set COM Parameters.");
+        printError("Failed to set COM Parameters");
         exitSerial();
     }
 
@@ -73,7 +85,7 @@ int main()
     timeouts.WriteTotalTimeoutMultiplier = 10;
     if (SetCommTimeouts(hComm, &timeouts) == FALSE)
     {
-        printf("\nError to Setting Time outs");
+        printError("Error while setting timeouts");
         exitSerial();
     }
 
@@ -133,7 +145,7 @@ string readSerial(int len){
     char ch[len] = {0};
     DWORD dwByteRead = 0;
     if(!ReadFile(hComm, ch, len, &dwByteRead, NULL)){
-        printf("Read Failed\n");
+        printError("Serial Read Failed");
         exitSerial();
     }
     if(dwByteRead > 0){
@@ -152,7 +164,7 @@ string readSerial(int len){
 void writeSerial(char *buf, int len){
     DWORD dwByteRead = 0;
     if(!WriteFile(hComm, buf, len, &dwByteRead, NULL)){
-        printf("Read Failed\n");
+        printError("Serial Write Failed");
         exitSerial();
     }
 }
@@ -184,4 +196,12 @@ void sendKey(uint8_t key, int state){
 void exitSerial(){
     CloseHandle(hComm);
     exit(0);
+}
+
+/**
+ * Print an error to the serial and open a message box.
+ */
+void printError(string errorStr){
+    printf("%s\n",errorStr);
+    MessageBox(0,errorStr.c_str(),"Keyboard Wedge: Error!",MB_OK);
 }
